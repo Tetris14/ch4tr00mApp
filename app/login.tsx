@@ -1,5 +1,3 @@
-// todo fix login to fix change the data.success it's not what's returned
-
 import React, { useState } from "react";
 import {
   SafeAreaView,
@@ -11,6 +9,8 @@ import {
   View,
 } from "react-native";
 import { API_URL } from "@/constants/Colors";
+import { useUserStore } from "@/stores/userStore";
+import { Redirect, router } from "expo-router";
 
 export default function LoginScreen() {
   const [username, setUsername] = useState("");
@@ -66,17 +66,22 @@ export default function LoginScreen() {
 
       const data = await response.json();
 
-      if (data.success) {
+      if (response.status === 201 && data.userId && data.jwt) {
         // Handle successful login
+        console.log("Login successful, userId:", data.userId);
+        console.log("JWT token:", data.jwt);
         Alert.alert("Success", "Login successful!");
-        // TODO: Navigate to next screen or store auth token
+        useUserStore.setState({ jwt: data.jwt, isAuthenticated: true });
+        router.push("/");
       } else {
-        setError(data.message || "Login failed");
-        Alert.alert("Error", data.message || "Login failed");
+        // Handle failed login
+        setError(data.message || "Invalid username or password");
+        Alert.alert("Error", data.message || "Invalid username or password");
         // Clear password on failed login
         setPassword("");
       }
     } catch (error) {
+      console.error("Login error:", error);
       setError("Network error. Please try again.");
       Alert.alert("Error", "Network error. Please try again.");
       setPassword("");
