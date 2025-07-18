@@ -6,6 +6,7 @@ import { useUserStore } from "@/stores/userStore";
 import { LinearGradient } from "expo-linear-gradient";
 import { Redirect } from "expo-router";
 import {
+  ColorValue,
   ImageBackground,
   SafeAreaView,
   ScrollView,
@@ -13,6 +14,70 @@ import {
   Text,
   View,
 } from "react-native";
+
+const getTemperatureGradient = (
+  min: number,
+  max: number
+): [ColorValue, ColorValue] => {
+  const average = (min + max) / 2;
+
+  if (average <= 5) return ["#0044ff", "#77aaff"] as [ColorValue, ColorValue]; // cold
+  if (average <= 15) return ["#00c4ff", "#aaffcc"] as [ColorValue, ColorValue]; // cool
+  if (average <= 25) return ["#ffe45e", "#ffaa00"] as [ColorValue, ColorValue]; // warm
+  if (average <= 35) return ["#ff8c00", "#ff3c00"] as [ColorValue, ColorValue]; // hot
+  return ["#ff0066", "#800080"] as [ColorValue, ColorValue]; // very hot
+};
+
+const getContainerColor = (conditionCode: string) => {
+  switch (conditionCode) {
+    case "Clear":
+    case "MostlyClear":
+    case "Hot":
+      return "rgba(139, 191, 249, 0.2)";
+
+    case "Cloudy":
+    case "MostlyCloudy":
+    case "PartlyCloudy":
+    case "Foggy":
+    case "Haze":
+    case "Smoky":
+    case "Smoke":
+      return "rgba(180, 180, 180, 0.52)";
+
+    case "Drizzle":
+    case "FreezingDrizzle":
+    case "Rain":
+    case "Showers":
+    case "ScatteredShowers":
+    case "SunShowers":
+    case "HeavyRain":
+    case "FreezingRain":
+    case "MixedRainAndSleet":
+    case "MixedRainAndSnow":
+    case "MixedRainfall":
+    case "Sleet":
+    case "Hail":
+    case "IsolatedThunderstorms":
+    case "ScatteredThunderstorms":
+    case "Thunderstorms":
+    case "SevereThunderstorm":
+    case "StrongStorms":
+      return "rgba(100, 149, 237, 0.2)";
+
+    case "Snow":
+    case "HeavySnow":
+    case "Flurries":
+    case "SnowShowers":
+    case "ScatteredSnowShowers":
+    case "Blizzard":
+    case "BlowingSnow":
+    case "MixedSnowAndSleet":
+      return "rgba(220, 220, 255, 0.2)";
+
+    default:
+      return "rgba(139, 191, 249, 0.2)";
+  }
+};
 
 const getIcon = (conditionCode: string, daylight: boolean) => {
   const isNight = !daylight;
@@ -209,7 +274,16 @@ export default function TabTwoScreen() {
         </View>
         <ScrollView bounces={true} style={styles.scrollView}>
           <View style={styles.scrollViewContentContainer}>
-            <View style={styles.gradientContainer}>
+            <View
+              style={[
+                styles.gradientContainer,
+                {
+                  backgroundColor: getContainerColor(
+                    data?.currentWeather?.conditionCode || "Clear"
+                  ),
+                },
+              ]}
+            >
               <View style={styles.gradientContainerText}>
                 <Text style={{ fontSize: 20, color: "white" }}>Mauvaise</Text>
               </View>
@@ -226,7 +300,16 @@ export default function TabTwoScreen() {
                 </Text>
               </View>
             </View>
-            <View style={styles.hourlyContainer}>
+            <View
+              style={[
+                styles.hourlyContainer,
+                {
+                  backgroundColor: getContainerColor(
+                    data?.currentWeather?.conditionCode || "Clear"
+                  ),
+                },
+              ]}
+            >
               <View style={styles.hourlyContainerHeader}>
                 <IconSymbol name="clock" size={20} color="white" />
                 <Text style={{ fontSize: 16, color: "white" }}>
@@ -259,16 +342,35 @@ export default function TabTwoScreen() {
                   ))}
               </ScrollView>
             </View>
-            <View style={styles.dailyContainer}>
+            <View
+              style={[
+                styles.dailyContainer,
+                {
+                  backgroundColor: getContainerColor(
+                    data?.currentWeather?.conditionCode || "Clear"
+                  ),
+                },
+              ]}
+            >
               <View style={styles.dailyContainerHeader}>
                 <IconSymbol name="calendar" size={20} color="white" />
                 <Text style={{ fontSize: 16, color: "white" }}>
                   PRÉVISIONS SUR 10 JOURS
                 </Text>
               </View>
-              <View style={styles.dailyContainerContent}>
+              <View style={[styles.dailyContainerContent]}>
                 {dailyData?.forecastDaily?.days?.map((day, index) => (
-                  <View key={index} style={styles.dailyItem}>
+                  <View
+                    key={index}
+                    style={[
+                      styles.dailyItem,
+                      {
+                        backgroundColor: getContainerColor(
+                          data?.currentWeather?.conditionCode || "Clear"
+                        ),
+                      },
+                    ]}
+                  >
                     <Text style={styles.dailyDate}>
                       {(() => {
                         const date = new Date(day.forecastStart);
@@ -297,7 +399,10 @@ export default function TabTwoScreen() {
                       {(day.temperatureMin ?? 0).toFixed(0)}°
                     </Text>
                     <LinearGradient
-                      colors={["#00f", "#0f0", "#ff0", "#f00", "#f0f"]}
+                      colors={getTemperatureGradient(
+                        day.temperatureMin ?? 0,
+                        day.temperatureMax ?? 0
+                      )}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 0 }}
                       style={styles.dailyGradient}
@@ -380,7 +485,6 @@ const styles = StyleSheet.create({
   gradientContainer: {
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "rgba(139, 191, 249, 0.2)",
     height: 100,
     width: "90%",
     borderRadius: 10,
@@ -410,7 +514,6 @@ const styles = StyleSheet.create({
   hourlyContainer: {
     width: "90%",
     height: 100,
-    backgroundColor: "rgba(139, 191, 249, 0.2)",
     borderRadius: 10,
     padding: 10,
   },
@@ -444,7 +547,6 @@ const styles = StyleSheet.create({
   dailyContainer: {
     width: "90%",
     height: "auto",
-    backgroundColor: "rgba(139, 191, 249, 0.2)",
     borderRadius: 10,
     padding: 10,
   },
